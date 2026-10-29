@@ -1,0 +1,17 @@
+# PyInstaller working folders and output
+build/
+dist/
+*.spec
+
+# Inno Setup output
+installer/Output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Results from test runs
+*_weed_cut*.svg
+*_weed_preview*.png
