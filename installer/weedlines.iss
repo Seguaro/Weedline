@@ -7,8 +7,8 @@
 ; When you release a new version, change MyAppVersion (and MyAppNumericVersion) below.
 
 #define MyAppName "Weed Lines"
-#define MyAppVersion "0.1.0-beta"
-#define MyAppNumericVersion "0.1.0.0"
+#define MyAppVersion "0.1.1-beta"
+#define MyAppNumericVersion "0.1.1.0"
 #define MyAppPublisher "Studio 57 Design"
 #define MyAppURL "https://studio57design.com"
 ; Change this to your GitHub page once the project is up, e.g. https://github.com/yourname/weedlines

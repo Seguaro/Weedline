@@ -1,5 +1,5 @@
 """weedlines.py - smart weeding lines for single-color vinyl lettering
-Version 0.1.0-beta
+Version 0.1.1-beta
 Copyright (c) 2026 George Sladic, Studio 57 Design
 Released under the MIT License. Provided as is, with no warranty. See LICENSE.
 
@@ -26,12 +26,24 @@ Command line:
   python weedlines.py topper.svg --overwrite                            (replace old results, no prompt)
   python weedlines.py --help                                            (all options)
 
+Version history:
+  0.1.1-beta (2026-11-22)
+    - Fixed: a counter with two hairline openings was never closed off. Example: the
+      script capital B in "Birthday", whose stem nearly touches the bowls at both the
+      top and the bottom. Pass 1 tested each opening alone, and neither one cut the
+      counter free by itself, so the inside of the B stayed joined to the outside
+      waste. New Pass 1b tries pairs of nearby openings together.
+    - Fixed: tiny zero-size subpaths (specks left inside counters such as the "a")
+      are no longer written to the cut SVG.
+  0.1.0-beta (2026-10-30)
+    - First public release.
+
 Needs: pip install shapely scipy svgpathtools numpy matplotlib
 
 Build (Windows), with weedlines.ico and splash.png in the same folder:
   py -m PyInstaller --onedir --noconsole --icon=weedlines.ico --splash=splash.png weedlines.py
 """
-__version__ = "0.1.0-beta"
+__version__ = "0.1.1-beta"
 
 try:
     import pyi_splash          # only present in a PyInstaller build made with --splash
@@ -210,6 +222,7 @@ def weed(letters, margin_in=0.25, amax_in2=1.5, emax_in=2.0, amin_in2=0.12, lmax
 
     # Pass 1: close pinch points (hairline openings into counters).
     # The pocket behind the neck must be a real bulb, not the sharp tip of a wedge.
+    unsplit = []                    # necks that didn't close anything off on their own
     for c in sorted((k for k in cands if k.length <= neck_in * PT), key=lambda k: k.length):
         for i, P in enumerate(pieces):
             if not c.within(P.buffer(0.01)):
@@ -218,7 +231,35 @@ def weed(letters, margin_in=0.25, amax_in2=1.5, emax_in=2.0, amin_in2=0.12, lmax
             if len(parts) >= 2 and min(q.area for q in parts) >= max(25.0, 8 * c.length ** 2):
                 pieces[i:i + 1] = parts
                 cuts.append(c)
+            elif len(parts) == 1:
+                unsplit.append(c)
             break
+
+    # Pass 1b: a counter with two hairline openings (like a script B whose stem
+    # nearly touches the bowl at top and bottom) is never closed by one neck alone,
+    # so try pairs of nearby necks together.
+    reach = 1.0 * PT                # both openings of one counter lie within about an inch
+    used = set()
+    for j, c1 in enumerate(unsplit):
+        for k2 in range(j + 1, len(unsplit)):
+            c2 = unsplit[k2]
+            if j in used or k2 in used:
+                continue
+            if c1.distance(c2) > reach or c1.distance(c2) < 3.0:
+                continue            # too far apart, or two copies of the same opening
+            for i, P in enumerate(pieces):
+                Pb = P.buffer(0.01)
+                if not (c1.within(Pb) and c2.within(Pb)):
+                    continue
+                parts = [q for q in as_list(P.difference(extend(c1).buffer(0.002, cap_style="flat")
+                                                         .union(extend(c2).buffer(0.002, cap_style="flat"))))
+                         if q.area > 1.0]
+                longest = max(c1.length, c2.length)
+                if len(parts) >= 2 and min(q.area for q in parts) >= max(25.0, 8 * longest ** 2):
+                    pieces[i:i + 1] = parts
+                    cuts.extend([c1, c2])
+                    used.update((j, k2))
+                break
 
     # Pass 2: split oversized pieces, preferring short cuts that leave balanced pieces.
     # Progress = how much oversized waste is left to split.
@@ -322,7 +363,7 @@ def write_svg(path, pieces, rect, tol=0.05):
     for P in pieces:
         P = P.simplify(tol, preserve_topology=True)
         d = []
-        for ring in [P.exterior] + list(P.interiors):
+        for ring in [P.exterior] + [r for r in P.interiors if Polygon(r).area > 1.0]:
             c = np.asarray(ring.coords)[:-1] - [x0, y0]
             d.append("M" + " L".join(f"{x:.3f},{y:.3f}" for x, y in c) + " Z")
         out.append(f'<path d="{" ".join(d)}" fill="none" stroke="#000" stroke-width="0.5"/>')
