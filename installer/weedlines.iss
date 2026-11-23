@@ -4,7 +4,9 @@
 ; Then open this file in Inno Setup and press Compile (or run: iscc installer\weedlines.iss).
 ; The finished installer lands in installer\Output\.
 ;
-; When you release a new version, change MyAppVersion (and MyAppNumericVersion) below.
+; When you release a new version, change MyAppVersion (and MyAppNumericVersion) below,
+; plus __version__ in weedlines.py, the version line in README.md, and the version
+; badge drawn into splash.png (it's part of the image, so it has to be edited by hand).
 
 #define MyAppName "Weed Lines"
 #define MyAppVersion "0.1.1-beta"
