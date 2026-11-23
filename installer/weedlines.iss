@@ -13,8 +13,9 @@
 #define MyAppNumericVersion "0.1.1.0"
 #define MyAppPublisher "Studio 57 Design"
 #define MyAppURL "https://studio57design.com"
-; Change this to your GitHub page once the project is up, e.g. https://github.com/yourname/weedlines
-#define MyAppSupportURL "https://studio57design.com"
+; Support goes to the GitHub issues page; updates go to the Releases page.
+#define MyAppSupportURL "https://github.com/Seguaro/Weedline/issues"
+#define MyAppUpdatesURL "https://github.com/Seguaro/Weedline/releases"
 #define MyAppExeName "weedlines.exe"
 
 [Setup]
@@ -26,7 +27,7 @@ AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppSupportURL}
-AppUpdatesURL={#MyAppSupportURL}
+AppUpdatesURL={#MyAppUpdatesURL}
 AppCopyright=Copyright (c) 2026 George Sladic, Studio 57 Design
 VersionInfoVersion={#MyAppNumericVersion}
 VersionInfoDescription={#MyAppName} Setup
