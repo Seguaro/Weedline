@@ -5,7 +5,7 @@
 
 # Weed Lines
 
-**Smart weeding cuts for single-color vinyl.** Version 0.1.1-beta
+**Smart weeding cuts for single-color vinyl.** Version 0.1.2-beta
 
 Weed Lines is a free Windows program for anyone who cuts vinyl lettering on a Cricut or similar cutter. You give it the SVG file of your design, and it creates the negative (the waste around your letters) already broken into small, easy-to-weed pieces.
 
@@ -29,7 +29,7 @@ The Randy topper in the example took about 20 seconds and came out with 55 cuts 
 
 ## Download and install
 
-Download `WeedLines-0.1.1-beta-setup.exe` from the [Releases](../../releases) page and run it.
+Download `WeedLines-0.1.2-beta-setup.exe` from the [Releases](../../releases) page and run it.
 
 **About the "Windows protected your PC" warning.** The installer isn't code-signed (signing certificates cost hundreds of dollars a year, and this is a free hobby project), so Windows SmartScreen will show a blue warning the first time you run it. Click **More info**, then **Run anyway**. Your antivirus may also ask about it for the same reason. The full source code is in this repository if you'd like to see exactly what it does, or build it yourself.
 

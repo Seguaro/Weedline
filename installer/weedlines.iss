@@ -9,8 +9,8 @@
 ; badge drawn into splash.png (it's part of the image, so it has to be edited by hand).
 
 #define MyAppName "Weed Lines"
-#define MyAppVersion "0.1.1-beta"
-#define MyAppNumericVersion "0.1.1.0"
+#define MyAppVersion "0.1.2-beta"
+#define MyAppNumericVersion "0.1.2.0"
 #define MyAppPublisher "Studio 57 Design"
 #define MyAppURL "https://studio57design.com"
 ; Support goes to the GitHub issues page; updates go to the Releases page.

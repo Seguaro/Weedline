@@ -1,5 +1,5 @@
 """weedlines.py - smart weeding lines for single-color vinyl lettering
-Version 0.1.1-beta
+Version 0.1.2-beta
 Copyright (c) 2026 George Sladic, Studio 57 Design
 Released under the MIT License. Provided as is, with no warranty. See LICENSE.
 
@@ -27,6 +27,11 @@ Command line:
   python weedlines.py --help                                            (all options)
 
 Version history:
+  0.1.2-beta (2026-11-24)
+    - Fixed: clip masks rotated with a transform (Illustrator does this for placed
+      artwork such as a swash) were read as straight rectangles, so part of the
+      artwork was cropped off, e.g. the curl at the end of a swash. Transforms on
+      clip rectangles, groups, and paths are now applied.
   0.1.1-beta (2026-11-22)
     - Fixed: a counter with two hairline openings was never closed off. Example: the
       script capital B in "Birthday", whose stem nearly touches the bowls at both the
@@ -43,7 +48,7 @@ Needs: pip install shapely scipy svgpathtools numpy matplotlib
 Build (Windows), with weedlines.ico and splash.png in the same folder:
   py -m PyInstaller --onedir --noconsole --icon=weedlines.ico --splash=splash.png weedlines.py
 """
-__version__ = "0.1.1-beta"
+__version__ = "0.1.2-beta"
 
 try:
     import pyi_splash          # only present in a PyInstaller build made with --splash
@@ -60,6 +65,7 @@ import numpy as np
 import shapely
 from scipy.spatial import Delaunay
 from shapely import make_valid
+from shapely.affinity import affine_transform
 from shapely.geometry import LineString, Polygon, box
 from shapely.ops import polygonize, unary_union
 from shapely.strtree import STRtree
@@ -104,6 +110,50 @@ def nonzero_fill(rings):
     return unary_union(keep)
 
 
+IDENTITY = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)   # SVG matrix(a b c d e f)
+
+
+def mat_mul(m, n):
+    """m then n applied inside it: the result maps a point through n first, then m."""
+    a, b, c, d, e, f = m
+    A, B, C, D, E, F = n
+    return (a*A + c*B, b*A + d*B, a*C + c*D, b*C + d*D, a*E + c*F + e, b*E + d*F + f)
+
+
+def parse_transform(t):
+    """Turn an SVG transform attribute (matrix, translate, scale, rotate, skewX, skewY) into one matrix."""
+    m = IDENTITY
+    for name, args in re.findall(r"(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)", t or ""):
+        v = [float(x) for x in re.findall(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", args)]
+        if name == "matrix" and len(v) == 6:
+            n = tuple(v)
+        elif name == "translate":
+            n = (1, 0, 0, 1, v[0], v[1] if len(v) > 1 else 0)
+        elif name == "scale":
+            n = (v[0], 0, 0, v[1] if len(v) > 1 else v[0], 0, 0)
+        elif name == "rotate":
+            r = np.radians(v[0]); co, si = np.cos(r), np.sin(r)
+            n = (co, si, -si, co, 0, 0)
+            if len(v) == 3:
+                cx, cy = v[1], v[2]
+                n = mat_mul(mat_mul((1, 0, 0, 1, cx, cy), n), (1, 0, 0, 1, -cx, -cy))
+        elif name == "skewX":
+            n = (1, 0, np.tan(np.radians(v[0])), 1, 0, 0)
+        elif name == "skewY":
+            n = (1, np.tan(np.radians(v[0])), 0, 1, 0, 0)
+        else:
+            continue
+        m = mat_mul(m, n)
+    return m
+
+
+def apply_mat(g, m):
+    if m == IDENTITY:
+        return g
+    a, b, c, d, e, f = m
+    return affine_transform(g, [a, c, b, d, e, f])
+
+
 def load_letters(svg_file, progress=None):
     root = ET.parse(svg_file).getroot()
     total = max(1, sum(1 for el in root.iter() if el.tag.endswith("}path")))
@@ -113,19 +163,25 @@ def load_letters(svg_file, progress=None):
         r = cp.find("svg:rect", NS)
         if r is not None:
             x, y = float(r.get("x", 0)), float(r.get("y", 0))
-            clips[cp.get("id")] = box(x, y, x + float(r.get("width")), y + float(r.get("height")))
+            # Illustrator often rotates a clip rectangle with a transform; ignoring it
+            # crops artwork that is really inside the mask (e.g. the curl of a swash).
+            rect = box(x, y, x + float(r.get("width")), y + float(r.get("height")))
+            clips[cp.get("id")] = apply_mat(rect, parse_transform(r.get("transform")))
     shapes = []
 
-    def walk(el, clip):
+    def walk(el, clip, ctm):
+        ctm = mat_mul(ctm, parse_transform(el.get("transform")))
         cpa = el.get("clip-path")
         if cpa:
             m = re.search(r"#([^)]+)", cpa)
             c = clips.get(m.group(1)) if m else None
             if c is not None:
+                c = apply_mat(c, ctm)
                 clip = c if clip is None else clip.intersection(c)
         if el.tag.endswith("}path") and el.get("d"):
             path = parse_path(el.get("d"))
             g = nonzero_fill([sample_subpath(sp) for sp in path.continuous_subpaths() if len(sp)])
+            g = apply_mat(g, ctm)
             if clip is not None:
                 g = g.intersection(clip)
             shapes.append(g)
@@ -133,9 +189,11 @@ def load_letters(svg_file, progress=None):
             if progress:
                 progress(seen[0] / total)
         for ch in el:
-            walk(ch, clip)
+            if ch.tag.endswith("}clipPath") or ch.tag.endswith("}defs"):
+                continue
+            walk(ch, clip, ctm)
 
-    walk(root, None)
+    walk(root, None, IDENTITY)
     if not shapes:
         raise ValueError("No outlined shapes found. Make sure the text is converted to outlines in Illustrator.")
     return make_valid(unary_union(shapes))
