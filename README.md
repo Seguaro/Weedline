@@ -39,6 +39,22 @@ During setup you can choose to add a desktop icon and an **Add weed lines** entr
 
 **Prepare your file first.** In Adobe Illustrator, convert all text to outlines (Type > Create Outlines) and save as SVG. Weed Lines reads shapes, not live text, and it will tell you if it finds nothing to work with. Everything in the file is treated as one color.
 
+### Using Affinity
+
+Affinity is free and works with Weed Lines, but its default SVG export doesn't. Out of the box, Affinity can write the file at your document's resolution (often 300 DPI) and wrap the lettering in scaling instructions that Weed Lines doesn't read yet. Weed Lines then thinks the design is several times bigger than it is, which makes it slow and fills the result with far too many cuts. These settings fix that:
+
+1. Convert the text to curves (select it, then **Layer > Convert to Curves**, or Ctrl+Enter). Do this before you export so you can see the outlines and catch any problems. The export dialog also has an option to convert text to curves, which works as a backup if you forget.
+2. Set the document to **72 DPI** in **Document Setup**. Keep the units in inches and leave rescaling off, so the artwork keeps its size and only the DPI number changes. Your lettering is vector, so this doesn't affect its quality.
+3. Choose **Export**, pick **SVG**, and use the **SVG (for export)** preset. Do **not** use **SVG (flatten)**: despite the name, it turns your lettering into a picture, and Weed Lines will report that it found no shapes.
+4. Under the advanced settings, turn **Use document resolution** on, **Flatten transforms** on, and **Relative coordinates** off. Leave **Rasterize** at its default; the dialog should say nothing will be rasterized. The raster DPI and downsampling settings only affect bitmap images, so they don't matter here.
+5. Setting the export area to the selection keeps the file to just your lettering.
+
+**Optional tip:** you don't have to merge overlapping script letters for Weed Lines, because it merges them itself. If you'll also cut the lettering on its own or reuse the outlines elsewhere, it's still worth selecting each group of connected letters and choosing **Geometry > Add** (the same as Unite in Illustrator or Weld in Design Space), so there are no cut lines running through the joins.
+
+If Affinity lets you save these as an export preset, save it so you only set this up once.
+
+**About the size in Illustrator:** Affinity doesn't write a real size into the SVG, so if you open the export in Illustrator it may show the wrong size (twice as big, for example). Weed Lines reads the drawing itself, so it still gets the right size. The `_weed_cut.svg` it saves has the correct size built in, and it measures 1/2 inch wider than your lettering because of the 1/4 inch margin on each side.
+
 Then use any of these:
 
 - **Double-click Weed Lines** and pick one or more SVG files. Hold Ctrl or Shift to select several and it'll do them one after another.
@@ -110,7 +126,7 @@ For those curious about the details: the outlines are sampled into polygons and 
 
 ## Limitations
 
-This is a beta. It handles one color at a time, and so far it has only been tested with SVG files saved from Adobe Illustrator. It reads outlined paths and the simple clipping masks Illustrator adds. Files from other programs, such as Inkscape or Affinity, may use different units or other shape types and might not come out right yet. The installer is for 64-bit Windows, but the script itself runs anywhere Python and the libraries run. Very large or very detailed designs take longer.
+This is a beta. It handles one color at a time, and it has been tested with SVG files saved from Adobe Illustrator and from Affinity (using the export settings under [Using Affinity](#using-affinity)). It reads outlined paths and the simple clipping masks Illustrator adds. Files from other programs, such as Inkscape, may use different units or other shape types and might not come out right yet. The installer is for 64-bit Windows, but the script itself runs anywhere Python and the libraries run. Very large or very detailed designs take longer.
 
 If something doesn't work, please open an issue on this page and attach the SVG if you can.
 
